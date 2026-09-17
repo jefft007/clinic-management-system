@@ -1,0 +1,49 @@
+name: patient_app
+description: Patient booking app — find clinics, book a token, track appointments.
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Networking
+  http: ^1.2.2
+
+  # Local storage (auth token, cached profile)
+  shared_preferences: ^2.3.2
+
+  # App-wide state (auth session)
+  provider: ^6.1.2
+
+  # Location for "nearby clinics" (handles its own permission prompts)
+  geolocator: ^13.0.1
+
+  # Map (OpenStreetMap tiles — no API key required)
+  flutter_map: ^7.0.2
+  latlong2: ^0.9.1
+
+  # Dates / formatting
+  intl: ^0.19.0
+
+  # Tap to call a clinic
+  url_launcher: ^6.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/app_icon.jpg"
+  remove_alpha_ios: true
