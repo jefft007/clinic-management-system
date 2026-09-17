@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const createTransporter = () => {
     return nodemailer.createTransport({
@@ -55,21 +56,29 @@ const notifyAdminOfResetRequest = async (adminEmail, requesterName, requesterEma
 };
 
 const sendOtpEmail = async (toEmail, otp) => {
-    if (!process.env.SMTP_USERNAME || !process.env.SMTP_PASSWORD) {
-        return { sent: false, message: 'SMTP is not configured in .env' };
+    if (!process.env.RESEND_API_KEY) {
+        return { sent: false, message: 'RESEND_API_KEY is not configured in .env' };
     }
-    const transporter = createTransporter();
-    const mailOptions = {
-        from:    process.env.EMAIL_FROM || process.env.SMTP_USERNAME,
-        to:      toEmail,
-        subject: 'Your login code',
-        text: `Your verification code is ${otp}. It expires in 5 minutes.\n\nIf you did not request this, you can safely ignore this email.`
-    };
+    
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    
     try {
-        await transporter.sendMail(mailOptions);
+        const { data, error } = await resend.emails.send({
+            from: process.env.EMAIL_FROM || 'onboarding@resend.dev',
+            to: toEmail,
+            subject: 'Your login code',
+            text: `Your verification code is ${otp}. It expires in 5 minutes.\n\nIf you did not request this, you can safely ignore this email.`
+        });
+        
+        if (error) {
+            // Do not log OTP in production error logs
+            console.error('OTP email send error from Resend:', error.message);
+            return { sent: false, message: error.message };
+        }
+        
         return { sent: true, message: 'Email sent successfully' };
     } catch (err) {
-        console.error('OTP email send error:', err);
+        console.error('OTP email send error:', err.message);
         return { sent: false, message: err.message };
     }
 };
