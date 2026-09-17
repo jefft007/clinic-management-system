@@ -48,7 +48,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on ApiException catch (e) {
       _showError(e.message);
-    } catch (_) {
+    } catch (e, stackTrace) {
+      debugPrint('Login error: $e');
+      debugPrint('Stacktrace: $stackTrace');
       _showError('Could not reach the server. Check your connection and try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
