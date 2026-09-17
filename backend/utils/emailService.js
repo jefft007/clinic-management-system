@@ -8,8 +8,8 @@ const nodemailer = require('nodemailer');
 const createTransporter = () => {
     return nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false,   // STARTTLS — required by Render (port 465/SSL is blocked)
         auth: {
             user: process.env.SMTP_USERNAME,
             pass: process.env.SMTP_PASSWORD
