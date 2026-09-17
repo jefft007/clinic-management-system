@@ -124,73 +124,35 @@ Please log in and go to Settings → Password Reset Requests to review and appro
 
 
 // =====================================================
-// PATIENT OTP SMTP
-// Uses a SEPARATE Gmail account
-// =====================================================
-
-const createPatientOtpTransporter = () => {
-    return nodemailer.createTransport({
-        host: 'smtp.gmail.com',
-        port: 587,
-        secure: false,
-        auth: {
-            user: process.env.PATIENT_SMTP_USERNAME,
-            pass: process.env.PATIENT_SMTP_PASSWORD
-        }
-    });
-};
-
-
-// =====================================================
 // SEND PATIENT OTP
+// Reuses the shared web SMTP transporter (SMTP_USERNAME / SMTP_PASSWORD)
+// — the same credentials that already work for password-reset emails.
 // =====================================================
 
 const sendOtpEmail = async (toEmail, otp) => {
-    if (
-        !process.env.PATIENT_SMTP_USERNAME ||
-        !process.env.PATIENT_SMTP_PASSWORD
-    ) {
+    if (!process.env.SMTP_USERNAME || !process.env.SMTP_PASSWORD) {
         return {
             sent: false,
-            message: 'Patient SMTP is not configured'
+            message: 'SMTP is not configured in .env'
         };
     }
 
-    const transporter = createPatientOtpTransporter();
+    const transporter = createTransporter(); // shared web transporter
 
     const mailOptions = {
-        from: `ClinicSystem <${process.env.PATIENT_SMTP_USERNAME}>`,
+        from: process.env.EMAIL_FROM || process.env.SMTP_USERNAME,
         to: toEmail,
         subject: 'Your ClinicSystem Login OTP',
-        text: `Hello,
-
-Your ClinicSystem verification code is:
-
-${otp}
-
-This OTP will expire in 5 minutes.
-
-If you did not request this code, you can safely ignore this email.
-
-– ClinicSystem Team`
+        text: `Hello,\n\nYour ClinicSystem verification code is:\n\n${otp}\n\nThis OTP will expire in 5 minutes.\n\nIf you did not request this code, you can safely ignore this email.\n\n– ClinicSystem Team`
     };
 
     try {
         await transporter.sendMail(mailOptions);
-
-        console.log(`Patient OTP email sent successfully to ${toEmail}`);
-
-        return {
-            sent: true,
-            message: 'OTP email sent successfully'
-        };
+        console.log(`[OTP] Email delivered to ${toEmail}`);
+        return { sent: true, message: 'OTP email sent successfully' };
     } catch (err) {
-        console.error('Patient OTP email error:', err.message);
-
-        return {
-            sent: false,
-            message: err.message
-        };
+        console.error('[OTP] Email error:', err.message);
+        return { sent: false, message: err.message };
     }
 };
 
