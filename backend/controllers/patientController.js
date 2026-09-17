@@ -1268,12 +1268,11 @@ const bookAppointment = async (req, res) => {
         // end time has already passed, there's nobody left to see.
         // Applies to patient self-booking exactly like clinic staff.
 
-        const nowTs = new Date();
-        const [sy, sm, sd] = String(availability.available_date).split('-').map(Number);
-        const [endH, endM] = String(availability.end_time).split(':').map(Number);
-        const sessionEndsAt = new Date(sy, (sm || 1) - 1, sd || 1, endH || 0, endM || 0, 0);
+        const [endH, endM] = String(availability.end_time).split(':');
+        const isoEndStr = `${availability.available_date}T${endH.padStart(2, '0')}:${endM.padStart(2, '0')}:00+05:30`;
+        const sessionEndsAt = new Date(isoEndStr);
 
-        if (sessionEndsAt.getTime() <= nowTs.getTime()) {
+        if (sessionEndsAt.getTime() <= Date.now()) {
             await connection.rollback();
 
             return res.status(409).json({

@@ -60,12 +60,30 @@ class _TokenSelectScreenState extends State<TokenSelectScreen> {
     }
   }
 
+  bool _isSessionEnded() {
+    try {
+      final endParts = widget.availability.endTime.split(':');
+      if (endParts.isEmpty) return false;
+      final endH = endParts[0].padLeft(2, '0');
+      final endM = endParts.length > 1 ? endParts[1].padLeft(2, '0') : '00';
+      
+      final isoString = '${widget.availability.availableDate}T$endH:$endM:00+05:30';
+      final endDateTime = DateTime.parse(isoString);
+      
+      return endDateTime.isBefore(DateTime.now());
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final sessionEnded = _isSessionEnded();
+    
     return Scaffold(
       appBar: AppBar(title: const Text('Select a Token')),
-      body: _buildBody(),
-      bottomNavigationBar: _selected == null
+      body: _buildBody(sessionEnded),
+      bottomNavigationBar: _selected == null || sessionEnded
           ? null
           : SafeArea(
               child: Padding(
@@ -90,9 +108,17 @@ class _TokenSelectScreenState extends State<TokenSelectScreen> {
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(bool sessionEnded) {
     if (_loading) return const LoadingView(message: 'Loading available tokens…');
     if (_error != null) return ErrorView(message: _error!, onRetry: _load);
+
+    if (sessionEnded) {
+      return const EmptyState(
+        icon: Icons.event_busy_rounded,
+        title: 'Session Ended',
+        subtitle: 'This session has ended. Token booking is no longer available.',
+      );
+    }
 
     final tokens = _tokens ?? [];
     // Even if tokens is empty, we should still show the grid if there are total tokens
@@ -115,7 +141,7 @@ class _TokenSelectScreenState extends State<TokenSelectScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${widget.doctor.fullName} · ${widget.availability.session} Session',
+                '${widget.doctor.fullName} • ${widget.availability.session} Session',
                 style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
               ),
               const SizedBox(height: 2),
@@ -150,7 +176,7 @@ class _TokenSelectScreenState extends State<TokenSelectScreen> {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      '${_selected!.estimatedTimeLabel!.split(' - ').first} · arrive by ${_selected!.arriveByLabel}',
+                      '${_selected!.estimatedTimeLabel!.split(' - ').first} • arrive by ${_selected!.arriveByLabel}',
                       style: const TextStyle(fontSize: 12, color: AppColors.primaryDark, fontWeight: FontWeight.w600),
                     ),
                   ),
