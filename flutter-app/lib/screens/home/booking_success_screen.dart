@@ -55,7 +55,7 @@ class BookingSuccessScreen extends StatelessWidget {
                       _row('Session', '${appointment['session']}'),
                       _row('Token Number', '#${appointment['token_number']}'),
                       if (appointment['estimated_time_label'] != null)
-                        _row('Estimated Time', '${appointment['estimated_time_label']}'),
+                        _row('Estimated Time', '${appointment['estimated_time_label']}'.split(' - ').first),
                       if (appointment['arrive_by_label'] != null)
                         _row('Arrive By', '${appointment['arrive_by_label']}'),
                       if (appointment['timing_note'] != null) ...[

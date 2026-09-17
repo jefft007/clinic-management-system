@@ -83,7 +83,7 @@ class AppointmentCard extends StatelessWidget {
                     const Icon(Icons.schedule_rounded, size: 15, color: AppColors.primary),
                     const SizedBox(width: 6),
                     Text(
-                      appointment.estimatedTimeLabel!,
+                      appointment.estimatedTimeLabel!.split(' - ').first,
                       style: const TextStyle(fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w600),
                     ),
                   ],

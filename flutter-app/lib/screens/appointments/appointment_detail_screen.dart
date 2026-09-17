@@ -83,7 +83,7 @@ class AppointmentDetailScreen extends StatelessWidget {
                   _row('Session', appointment.session),
                   _row('Token Number', '#${appointment.tokenNumber}'),
                   if (appointment.estimatedTimeLabel != null)
-                    _row('Estimated Time', appointment.estimatedTimeLabel!),
+                    _row('Estimated Time', appointment.estimatedTimeLabel!.split(' - ').first),
                   if (appointment.arriveByLabel != null)
                     _row('Arrive By', appointment.arriveByLabel!),
                 ],

@@ -41,7 +41,7 @@ class ClinicCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 3),
                     Text(
-                      '${clinic.address}, ${clinic.city}',
+                      clinic.city,
                       style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
