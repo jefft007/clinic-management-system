@@ -10,7 +10,7 @@ The system provides separate interfaces for **Administrators, Doctors, Clinic St
 
 | Platform                   | Link                                                                                     |
 | -------------------------- | ---------------------------------------------------------------------------------------- |
-| 🌐 **Live Web App**        | **[Open Web Application](https://frontend-web-eta-green.vercel.app/login)**                                              |
+| 🌐 **Live Web App**        | **[Open Web Application]([https://frontend-web-eta-green.vercel.app/login](https://frontend-web-eta-green.vercel.app/))**                                              |
 | 📱 **Patient Android App** | **[Download APK](https://github.com/jefft007/clinic-management-system/releases/latest)** |
 | 💻 **GitHub Repository**   | **[View Source Code](https://github.com/jefft007/clinic-management-system)**             |
 | 🔗 **Backend API**         | **https://clinic-management-system-8c9d.onrender.com**                                   |
