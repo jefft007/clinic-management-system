@@ -70,7 +70,7 @@ if (!emailResult.sent) {
 
     return res.status(500).json({
         success: false,
-        message: "Failed to send OTP email"
+        message: "Failed to send OTP email: " + emailResult.message
     });
 }
 
