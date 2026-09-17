@@ -131,8 +131,8 @@ Please log in and go to Settings → Password Reset Requests to review and appro
 const createPatientOtpTransporter = () => {
     return nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,
+        port: 587,
+        secure: false,
         auth: {
             user: process.env.PATIENT_SMTP_USERNAME,
             pass: process.env.PATIENT_SMTP_PASSWORD
