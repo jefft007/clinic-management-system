@@ -124,10 +124,15 @@ Please log in and go to Settings → Password Reset Requests to review and appro
 
 
 // =====================================================
-// SEND PATIENT OTP  — Brevo transactional email API
+// SEND PATIENT OTP  — Brevo transactional email API v6
 // Uses BREVO_API_KEY and BREVO_SENDER_EMAIL env vars.
 // Gmail SMTP is NOT used here; sendResetEmail() and
 // notifyAdminOfResetRequest() above are unchanged.
+//
+// v6 SDK usage:
+//   const { BrevoClient } = require('@getbrevo/brevo');
+//   const client = new BrevoClient({ apiKey: '...' });
+//   await client.transactionalEmails.sendTransacEmail({ ... });
 // =====================================================
 
 const sendOtpEmail = async (toEmail, otp) => {
@@ -138,23 +143,22 @@ const sendOtpEmail = async (toEmail, otp) => {
         };
     }
 
-    const brevo = require('@getbrevo/brevo');
-    const apiInstance = new brevo.TransactionalEmailsApi();
-    apiInstance.authentications['api-key'].apiKey = process.env.BREVO_API_KEY;
-
-    const sendSmtpEmail = new brevo.SendSmtpEmail();
-    sendSmtpEmail.sender = { email: process.env.BREVO_SENDER_EMAIL };
-    sendSmtpEmail.to = [{ email: toEmail }];
-    sendSmtpEmail.subject = 'Your ClinicSystem login code';
-    sendSmtpEmail.textContent = `Your verification code is ${otp}. It expires in 5 minutes.`;
+    const { BrevoClient } = require('@getbrevo/brevo');
+    const client = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
 
     try {
-        await apiInstance.sendTransacEmail(sendSmtpEmail);
+        await client.transactionalEmails.sendTransacEmail({
+            sender: { email: process.env.BREVO_SENDER_EMAIL },
+            to: [{ email: toEmail }],
+            subject: 'Your ClinicSystem login code',
+            textContent: `Your verification code is ${otp}. It expires in 5 minutes.`
+        });
+
         console.log(`[OTP] Brevo email delivered to ${toEmail}`);
         return { sent: true, message: 'Email sent successfully' };
     } catch (err) {
-        // Log only the error code/message, never the OTP or API key
-        const detail = err?.response?.body?.message || err.message || 'Unknown error';
+        // Never log the OTP or API key — only log the error detail
+        const detail = err?.body?.message || err?.response?.body?.message || err.message || 'Unknown error';
         console.error('[OTP] Brevo send error:', detail);
         return { sent: false, message: detail };
     }
