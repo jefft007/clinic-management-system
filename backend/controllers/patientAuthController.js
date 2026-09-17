@@ -59,24 +59,30 @@ const requestOtp = async (req, res) => {
             }
         }
 
-        const otp = generateOtp();
-        const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+       const otp = generateOtp();
+const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
 
-        await pool.execute(
-            `
-            INSERT INTO otp_verifications (phone, otp_code, purpose, expires_at, channel, email)
-            VALUES (?, ?, ?, ?, 'email', ?)
-            `,
-            [phone, otp, PURPOSE, expiresAt, email]
-        );
+// Send email first
+const emailResult = await sendOtpEmail(email, otp);
 
-        const emailResult = await sendOtpEmail(email, otp);
-        if (!emailResult.sent) {
-            return res.status(500).json({
-                success: false,
-                message: "Failed to send OTP email: " + emailResult.message
-            });
-        }
+if (!emailResult.sent) {
+    console.error("OTP was not sent:", emailResult.message);
+
+    return res.status(500).json({
+        success: false,
+        message: "Failed to send OTP email"
+    });
+}
+
+// Save OTP only after email was successfully sent
+await pool.execute(
+    `
+    INSERT INTO otp_verifications
+    (phone, otp_code, purpose, expires_at, channel, email)
+    VALUES (?, ?, ?, ?, 'email', ?)
+    `,
+    [phone, otp, PURPOSE, expiresAt, email]
+);
 
         const response = {
             success: true,
