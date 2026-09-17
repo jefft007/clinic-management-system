@@ -196,6 +196,14 @@ const verifyOtp = async (req, res) => {
             [phone]
         );
 
+        if (!process.env.JWT_SECRET) {
+            console.error("JWT_SECRET is missing from environment variables.");
+            return res.status(500).json({
+                success: false,
+                message: "Server configuration error"
+            });
+        }
+
         const token = jwt.sign(
             {
                 type: "patient",
