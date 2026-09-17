@@ -1,6 +1,6 @@
 const jwt = require("jsonwebtoken");
 const pool = require("../config/database");
-const { sendOtpSms } = require("../utils/smsService");
+const { sendOtpEmail } = require("../utils/emailService");
 
 const OTP_TTL_MINUTES = 5;
 const OTP_RESEND_COOLDOWN_SECONDS = 45;
@@ -26,6 +26,14 @@ const requestOtp = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "A valid 10-digit phone number is required"
+            });
+        }
+
+        const email = req.body.email;
+        if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+            return res.status(400).json({
+                success: false,
+                message: "A valid email address is required"
             });
         }
 
@@ -56,17 +64,23 @@ const requestOtp = async (req, res) => {
 
         await pool.execute(
             `
-            INSERT INTO otp_verifications (phone, otp_code, purpose, expires_at)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO otp_verifications (phone, otp_code, purpose, expires_at, channel, email)
+            VALUES (?, ?, ?, ?, 'email', ?)
             `,
-            [phone, otp, PURPOSE, expiresAt]
+            [phone, otp, PURPOSE, expiresAt, email]
         );
 
-        await sendOtpSms(phone, otp);
+        const emailResult = await sendOtpEmail(email, otp);
+        if (!emailResult.sent) {
+            return res.status(500).json({
+                success: false,
+                message: "Failed to send OTP email: " + emailResult.message
+            });
+        }
 
         const response = {
             success: true,
-            message: "OTP sent successfully",
+            message: "OTP sent successfully to email",
             expires_in_seconds: OTP_TTL_MINUTES * 60
         };
 
