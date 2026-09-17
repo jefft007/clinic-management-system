@@ -9,6 +9,7 @@ import 'main_shell.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phone;
+  final String email;
   final String name;
   final int expiresInSeconds;
   final String? debugOtp;
@@ -16,6 +17,7 @@ class OtpScreen extends StatefulWidget {
   const OtpScreen({
     super.key,
     required this.phone,
+    required this.email,
     required this.name,
     required this.expiresInSeconds,
     this.debugOtp,
@@ -61,7 +63,7 @@ class _OtpScreenState extends State<OtpScreen> {
   Future<void> _verify() async {
     final otp = _otpController.text.trim();
     if (otp.length < 4) {
-      _showError('Enter the OTP sent to your phone');
+      _showError('Enter the OTP sent to your email');
       return;
     }
     setState(() => _loading = true);
@@ -92,7 +94,7 @@ class _OtpScreenState extends State<OtpScreen> {
   Future<void> _resend() async {
     setState(() => _resending = true);
     try {
-      await AuthApi.requestOtp(widget.phone);
+      await AuthApi.requestOtp(widget.phone, widget.email);
       if (!mounted) return;
       setState(() => _secondsLeft = 45);
       _startTimer();
@@ -123,7 +125,7 @@ class _OtpScreenState extends State<OtpScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Enter the OTP sent to +91 ${widget.phone}',
+                'Enter the OTP sent to ${widget.email}',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 20),

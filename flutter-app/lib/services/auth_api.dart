@@ -14,10 +14,10 @@ class OtpVerifyResult {
 }
 
 class AuthApi {
-  static Future<OtpRequestResult> requestOtp(String phone) async {
+  static Future<OtpRequestResult> requestOtp(String phone, String email) async {
     final res = await ApiClient.instance.post(
       '/patient/auth/request-otp',
-      body: {'phone': phone},
+      body: {'phone': phone, 'email': email},
     );
     return OtpRequestResult(
       expiresInSeconds: res['expires_in_seconds'] ?? 300,

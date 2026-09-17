@@ -15,12 +15,14 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
   bool _loading = false;
 
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     _phoneController.dispose();
     super.dispose();
   }
@@ -30,12 +32,14 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _loading = true);
     try {
       final phone = _phoneController.text.trim();
-      final result = await AuthApi.requestOtp(phone);
+      final email = _emailController.text.trim();
+      final result = await AuthApi.requestOtp(phone, email);
       if (!mounted) return;
       Navigator.of(context).push(
         MaterialPageRoute(
           builder: (_) => OtpScreen(
             phone: phone,
+            email: email,
             name: _nameController.text.trim(),
             expiresInSeconds: result.expiresInSeconds,
             debugOtp: result.debugOtp,
@@ -78,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 6),
                 const Text(
-                  'Enter your name and phone number to book and track your appointments.',
+                  'Enter your details to receive an OTP via email.',
                   style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
                 ),
                 const SizedBox(height: 32),
@@ -96,6 +100,23 @@ class _LoginScreenState extends State<LoginScreen> {
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Please enter your name';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 14),
+                // Email field
+                TextFormField(
+                  controller: _emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email Address',
+                    hintText: 'e.g. your@email.com',
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty || !value.contains('@')) {
+                      return 'Please enter a valid email';
                     }
                     return null;
                   },
