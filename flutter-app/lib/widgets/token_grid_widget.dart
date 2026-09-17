@@ -20,15 +20,15 @@ class TokenGridWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Legend
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        const Padding(
+          padding: EdgeInsets.fromLTRB(16, 0, 16, 12),
           child: Wrap(
             spacing: 12,
             runSpacing: 8,
             children: [
-              _LegendItem(label: 'Available', color: Colors.white, borderColor: const Color(0xFF15803D)),
-              _LegendItem(label: 'Selected', color: const Color(0xFF2563EB), borderColor: const Color(0xFF1D4ED8)),
-              _LegendItem(label: 'Unavailable', color: const Color(0xFF6B7280), borderColor: const Color(0xFF4B5563)),
+              _LegendItem(label: 'Available', color: Colors.white, borderColor: Color(0xFF15803D)),
+              _LegendItem(label: 'Selected', color: Color(0xFF2563EB), borderColor: Color(0xFF1D4ED8)),
+              _LegendItem(label: 'Unavailable', color: Color(0xFF6B7280), borderColor: Color(0xFF4B5563)),
             ],
           ),
         ),

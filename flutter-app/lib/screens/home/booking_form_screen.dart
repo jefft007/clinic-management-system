@@ -217,7 +217,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                   Expanded(
                     flex: 2,
                     child: DropdownButtonFormField<String>(
-                      value: _gender,
+                      initialValue: _gender,
                       decoration: const InputDecoration(labelText: 'Gender'),
                       items: ['Male', 'Female', 'Other']
                           .map((g) => DropdownMenuItem(value: g, child: Text(g)))
