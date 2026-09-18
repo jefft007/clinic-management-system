@@ -603,20 +603,36 @@ const getMyAppointments = async (req, res) => {
             [phone]
         );
 
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const currentIstDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const currentIstTimeStr = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour12: false });
 
         const patientFacingAppointments = appointments.map(appt => {
-            const apptDate = new Date(appt.appointment_date);
-            apptDate.setHours(0, 0, 0, 0);
+            let isUpcoming = false;
+            let displayStatus = appt.status === "Reserved" ? "Booked" : appt.status;
+            
+            const apptDateStr = typeof appt.appointment_date === 'string' 
+                ? appt.appointment_date.split('T')[0] 
+                : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(appt.appointment_date));
+
+            if (!["Cancelled", "Completed", "Absent"].includes(displayStatus)) {
+                if (apptDateStr > currentIstDateStr) {
+                    isUpcoming = true;
+                } else if (apptDateStr === currentIstDateStr) {
+                    const endTime = appt.end_time || "23:59:00";
+                    if (endTime > currentIstTimeStr) {
+                        isUpcoming = true;
+                    }
+                }
+            }
+
+            if (isUpcoming && displayStatus === "Booked") displayStatus = "Upcoming";
+            if (!isUpcoming && ["Booked", "Reserved", "In Progress"].includes(displayStatus)) displayStatus = "Completed";
 
             return {
                 ...appt,
-                // Patients should never see the internal "Reserved" status
-                // (shown to clinic staff as "Blocked").
-                status: appt.status === "Reserved" ? "Booked" : appt.status,
-                is_upcoming: apptDate.getTime() >= today.getTime() &&
-                    !["Cancelled", "Completed", "Absent"].includes(appt.status)
+                status: displayStatus,
+                is_upcoming: isUpcoming,
+                appointment_date: apptDateStr
             };
         });
 
@@ -953,6 +969,9 @@ const getDoctorAvailability = async (req, res) => {
         const toDate = toDateObj.toISOString().split('T')[0];
         await ensureRegularSlotsExist(doctorId, fromDate, toDate);
 
+        const currentIstDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const currentIstTimeStr = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour12: false });
+        
         let sql = `
             SELECT
                 availability_id,
@@ -970,11 +989,11 @@ const getDoctorAvailability = async (req, res) => {
             WHERE doctor_id = ?
               AND is_leave = 0
               AND (
-                    available_date > CURDATE()
-                    OR (available_date = CURDATE() AND end_time > CURTIME())
+                    available_date > ?
+                    OR (available_date = ? AND end_time > ?)
                   )
         `;
-        const params = [doctorId];
+        const params = [doctorId, currentIstDateStr, currentIstDateStr, currentIstTimeStr];
 
         if (date) {
             sql += ` AND available_date = ?`;
@@ -1243,15 +1262,13 @@ const bookAppointment = async (req, res) => {
         // CHECK DATE
         // =================================================
 
-        const appointmentDate =
-            new Date(availability.available_date);
+        const currentIstDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        
+        const availDateStr = typeof availability.available_date === 'string'
+            ? availability.available_date.split('T')[0]
+            : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(availability.available_date));
 
-        const today = new Date();
-
-        appointmentDate.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
-
-        if (appointmentDate < today) {
+        if (availDateStr < currentIstDateStr) {
             await connection.rollback();
 
             return res.status(400).json({
@@ -1640,6 +1657,63 @@ const bookAppointment = async (req, res) => {
 // EXPORTS
 // =====================================================
 
+// =====================================================
+// CANCEL APPOINTMENT
+// =====================================================
+const cancelAppointment = async (req, res) => {
+    try {
+        const phone = req.patientAuth?.phone;
+        const appointmentId = req.params.appointmentId;
+
+        if (!phone) {
+            return res.status(401).json({ success: false, message: "Not authenticated" });
+        }
+
+        const [appts] = await pool.execute(`
+            SELECT a.*, p.phone as patient_phone, da.end_time
+            FROM appointments a
+            INNER JOIN patients p ON p.patient_id = a.patient_id
+            LEFT JOIN doctor_availability da ON da.availability_id = a.availability_id
+            WHERE a.appointment_id = ?
+        `, [appointmentId]);
+
+        if (appts.length === 0) {
+            return res.status(404).json({ success: false, message: "Appointment not found" });
+        }
+
+        const appt = appts[0];
+        if (appt.patient_phone !== phone) {
+            return res.status(403).json({ success: false, message: "Not authorized to cancel this appointment" });
+        }
+
+        const currentIstDateStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        const currentIstTimeStr = new Date().toLocaleTimeString('en-GB', { timeZone: 'Asia/Kolkata', hour12: false });
+        
+        const apptDateStr = typeof appt.appointment_date === 'string' 
+            ? appt.appointment_date.split('T')[0] 
+            : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(appt.appointment_date));
+
+        let isPast = false;
+        if (apptDateStr < currentIstDateStr) isPast = true;
+        else if (apptDateStr === currentIstDateStr && appt.end_time <= currentIstTimeStr) isPast = true;
+
+        if (isPast) {
+            return res.status(400).json({ success: false, message: "Cannot cancel a past appointment" });
+        }
+
+        if (['Cancelled', 'Completed', 'Absent'].includes(appt.status)) {
+            return res.status(400).json({ success: false, message: "Appointment already cancelled or completed" });
+        }
+
+        await pool.execute("UPDATE appointments SET status = 'Cancelled' WHERE appointment_id = ?", [appointmentId]);
+
+        return res.status(200).json({ success: true, message: "Appointment cancelled successfully" });
+    } catch (e) {
+        console.error("Cancel appointment error:", e);
+        return res.status(500).json({ success: false, message: "Failed to cancel appointment" });
+    }
+};
+
 module.exports = {
 
     // Patient management
@@ -1657,5 +1731,6 @@ module.exports = {
     getDoctorAvailability,
     getAvailabilityTokens,
     bookAppointment,
-    getMyAppointments
+    getMyAppointments,
+    cancelAppointment
 };

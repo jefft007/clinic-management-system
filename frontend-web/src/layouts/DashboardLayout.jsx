@@ -160,15 +160,17 @@ const DashboardLayout = () => {
       <main className="main-content">
         {/* Top nav */}
         <header className="top-nav" style={{ position: 'relative' }}>
-          <div className="top-nav-left">
+          <div className="top-nav-left" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '1rem' }}>
             <button 
               className="mobile-menu-btn" 
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label="Open menu"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              aria-label="Toggle menu"
             >
               ☰
             </button>
-
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <div className="top-nav-title">{pageTitle}</div>
+            </div>
           </div>
 
           {/* Clinic name — absolutely centred in the header */}

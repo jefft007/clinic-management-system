@@ -7,7 +7,8 @@ const {
     getDoctorAvailability,
     getAvailabilityTokens,
     bookAppointment,
-    getMyAppointments
+    getMyAppointments,
+    cancelAppointment
 } = require("../controllers/patientController");
 
 const {
@@ -105,5 +106,12 @@ router.get(
     getMyAppointments
 );
 
+// Cancel appointment
+// POST /api/patient/appointments/:appointmentId/cancel
+router.post(
+    "/appointments/:appointmentId/cancel",
+    authenticatePatient,
+    cancelAppointment
+);
 
 module.exports = router;

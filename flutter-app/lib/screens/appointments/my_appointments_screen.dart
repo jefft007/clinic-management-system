@@ -103,10 +103,13 @@ class _MyAppointmentsScreenState extends State<MyAppointmentsScreen>
       itemCount: items.length,
       itemBuilder: (context, i) => AppointmentCard(
         appointment: items[i],
-        onTap: () {
-          Navigator.of(context).push(
+        onTap: () async {
+          final refresh = await Navigator.of(context).push<bool>(
             MaterialPageRoute(builder: (_) => AppointmentDetailScreen(appointment: items[i])),
           );
+          if (refresh == true) {
+            _load();
+          }
         },
       ),
     );

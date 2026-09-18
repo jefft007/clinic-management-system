@@ -98,4 +98,9 @@ class PatientApi {
     final list = (res['appointments'] as List<dynamic>? ?? []);
     return list.map((e) => Appointment.fromJson(e as Map<String, dynamic>)).toList();
   }
+
+  static Future<void> cancelAppointment(int appointmentId) async {
+    await ApiClient.instance.post('/patient/appointments/$appointmentId/cancel', auth: true);
+  }
 }
+

@@ -4,10 +4,19 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/appointment.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common.dart';
+import '../../services/patient_api.dart';
+import '../../core/api_client.dart';
 
-class AppointmentDetailScreen extends StatelessWidget {
+class AppointmentDetailScreen extends StatefulWidget {
   final Appointment appointment;
   const AppointmentDetailScreen({super.key, required this.appointment});
+
+  @override
+  State<AppointmentDetailScreen> createState() => _AppointmentDetailScreenState();
+}
+
+class _AppointmentDetailScreenState extends State<AppointmentDetailScreen> {
+  bool _cancelling = false;
 
   String _formatDate(String raw) {
     try {
@@ -21,6 +30,48 @@ class AppointmentDetailScreen extends StatelessWidget {
   Future<void> _call(String phone) async {
     final uri = Uri(scheme: 'tel', path: phone);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  Future<void> _cancel() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Appointment'),
+        content: const Text('Are you sure you want to cancel this appointment?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('No')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.danger),
+            child: const Text('Yes, Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    setState(() => _cancelling = true);
+    try {
+      await PatientApi.cancelAppointment(widget.appointment.appointmentId);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Appointment cancelled successfully')),
+      );
+      Navigator.pop(context, true); // Return true to signal refresh
+    } on ApiException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), backgroundColor: AppColors.danger),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to cancel appointment'), backgroundColor: AppColors.danger),
+      );
+    } finally {
+      if (mounted) setState(() => _cancelling = false);
+    }
   }
 
   @override
@@ -42,13 +93,13 @@ class AppointmentDetailScreen extends StatelessWidget {
                   ),
                   child: Center(
                     child: Text(
-                      '#${appointment.tokenNumber}',
+                      '#${widget.appointment.tokenNumber}',
                       style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: AppColors.primary),
                     ),
                   ),
                 ),
                 const SizedBox(height: 10),
-                StatusPill(status: appointment.status),
+                StatusPill(status: widget.appointment.status),
               ],
             ),
           ),
@@ -60,36 +111,49 @@ class AppointmentDetailScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _sectionTitle('Doctor'),
-                  Text(appointment.doctorName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  if (appointment.specialization != null)
-                    Text(appointment.specialization!, style: const TextStyle(color: AppColors.textSecondary)),
+                  Text(widget.appointment.doctorName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  if (widget.appointment.specialization != null)
+                    Text(widget.appointment.specialization!, style: const TextStyle(color: AppColors.textSecondary)),
                   const Divider(height: 28),
                   _sectionTitle('Clinic'),
-                  Text(appointment.clinicName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
-                  if (appointment.clinicAddress != null)
-                    Text('${appointment.clinicAddress}, ${appointment.clinicCity ?? ''}',
+                  Text(widget.appointment.clinicName, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                  if (widget.appointment.clinicAddress != null)
+                    Text('${widget.appointment.clinicAddress}, ${widget.appointment.clinicCity ?? ''}',
                         style: const TextStyle(color: AppColors.textSecondary)),
-                  if (appointment.clinicPhone != null) ...[
+                  if (widget.appointment.clinicPhone != null) ...[
                     const SizedBox(height: 8),
                     TextButton.icon(
-                      onPressed: () => _call(appointment.clinicPhone!),
+                      onPressed: () => _call(widget.appointment.clinicPhone!),
                       icon: const Icon(Icons.call_rounded, size: 16),
-                      label: Text(appointment.clinicPhone!),
+                      label: Text(widget.appointment.clinicPhone!),
                     ),
                   ],
                   const Divider(height: 28),
                   _sectionTitle('Visit'),
-                  _row('Date', _formatDate(appointment.appointmentDate)),
-                  _row('Session', appointment.session),
-                  _row('Token Number', '#${appointment.tokenNumber}'),
-                  if (appointment.estimatedTimeLabel != null)
-                    _row('Estimated Time', appointment.estimatedTimeLabel!.split(' - ').first),
-                  if (appointment.arriveByLabel != null)
-                    _row('Arrive By', appointment.arriveByLabel!),
+                  _row('Date', _formatDate(widget.appointment.appointmentDate)),
+                  _row('Session', widget.appointment.session),
+                  _row('Token Number', '#${widget.appointment.tokenNumber}'),
+                  if (widget.appointment.estimatedTimeLabel != null)
+                    _row('Estimated Time', widget.appointment.estimatedTimeLabel!.split(' - ').first),
+                  if (widget.appointment.arriveByLabel != null)
+                    _row('Arrive By', widget.appointment.arriveByLabel!),
                 ],
               ),
             ),
           ),
+          if (widget.appointment.isUpcoming && widget.appointment.status != 'Cancelled') ...[
+            const SizedBox(height: 24),
+            _cancelling
+                ? const Center(child: CircularProgressIndicator())
+                : ElevatedButton(
+                    onPressed: _cancel,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.danger,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Cancel Appointment'),
+                  ),
+          ],
         ],
       ),
     );
@@ -120,3 +184,4 @@ class AppointmentDetailScreen extends StatelessWidget {
     );
   }
 }
+

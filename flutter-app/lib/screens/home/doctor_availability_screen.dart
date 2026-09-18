@@ -64,6 +64,9 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
     }
   }
 
+  String _selectedFilter = 'This Week';
+  final List<String> _filters = ['This Week', 'Next Week', 'All Upcoming'];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -79,25 +82,71 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
     if (_error != null) return ErrorView(message: _error!, onRetry: _load);
 
     final slots = (_slots ?? []).where((s) => !s.isLeave).toList();
-    if (slots.isEmpty) {
-      return const EmptyState(
-        icon: Icons.event_busy_rounded,
-        title: 'No upcoming sessions',
-        subtitle: 'This doctor has no available sessions in the next 30 days',
-      );
-    }
+    
+    // Filter slots based on selection
+    final now = DateTime.now();
+    final todayStr = now.toIso8601String().split('T')[0];
+    
+    final nextWeek = now.add(const Duration(days: 7));
+    final nextWeekStr = nextWeek.toIso8601String().split('T')[0];
 
-    final grouped = _groupByDate(slots);
+    final twoWeeks = now.add(const Duration(days: 14));
+    final twoWeeksStr = twoWeeks.toIso8601String().split('T')[0];
+    
+    final availableSlots = slots.where((s) {
+      if (s.availableDate.compareTo(todayStr) < 0) return false;
+      
+      if (_selectedFilter == 'This Week') {
+        return s.availableDate.compareTo(nextWeekStr) <= 0;
+      } else if (_selectedFilter == 'Next Week') {
+        return s.availableDate.compareTo(nextWeekStr) > 0 && 
+               s.availableDate.compareTo(twoWeeksStr) <= 0;
+      }
+      return true; // All Upcoming
+    }).toList();
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${widget.doctor.specialization ?? ''} · ${widget.clinic.clinicName}',
+                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              ),
+              DropdownButton<String>(
+                value: _selectedFilter,
+                underline: const SizedBox(),
+                items: _filters.map((f) => DropdownMenuItem(value: f, child: Text(f, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)))).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedFilter = val);
+                },
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: availableSlots.isEmpty
+              ? const EmptyState(
+                  icon: Icons.event_busy_rounded,
+                  title: 'No upcoming sessions',
+                  subtitle: 'No available sessions for the selected period.',
+                )
+              : _buildList(availableSlots),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildList(List<Availability> availableSlots) {
+    final grouped = _groupByDate(availableSlots);
     final dates = grouped.keys.toList()..sort();
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
-        Text(
-          '${widget.doctor.specialization ?? ''} · ${widget.clinic.clinicName}',
-          style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
-        ),
-        const SizedBox(height: 16),
         for (final date in dates) ...[
           Text(_formatDate(date), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
           const SizedBox(height: 8),
