@@ -173,19 +173,9 @@ const DashboardLayout = () => {
             </div>
           </div>
 
-          {/* Clinic name — absolutely centred in the header */}
+          {/* Clinic name */}
           {user?.clinic_name && (
-            <div style={{
-              position: 'absolute',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              fontWeight: 800,
-              fontSize: '1.35rem',
-              color: '#7dd3fc',
-              letterSpacing: '0.01em',
-              whiteSpace: 'nowrap',
-              pointerEvents: 'none',
-            }}>
+            <div className="top-nav-clinic-name">
               {user.clinic_name}
             </div>
           )}
@@ -193,8 +183,8 @@ const DashboardLayout = () => {
           <div className="top-nav-right">
             <div className="user-pill">
               <div className="user-avatar">{initials}</div>
-              <span className="user-name">{user?.full_name}</span>
-              <span className={`role-badge ${roleMeta.badgeClass}`}>{roleMeta.label}</span>
+              <span className="user-name hide-mobile">{user?.full_name}</span>
+              <span className={`role-badge hide-mobile ${roleMeta.badgeClass}`}>{roleMeta.label}</span>
             </div>
           </div>
         </header>
