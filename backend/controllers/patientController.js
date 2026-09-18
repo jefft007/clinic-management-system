@@ -938,7 +938,8 @@ const getDoctorAvailability = async (req, res) => {
                 d.doctor_id,
                 d.clinic_id,
                 u.full_name AS doctor_name,
-                d.specialization
+                d.specialization,
+                d.booking_visible_until
 
             FROM doctors d
 
@@ -960,6 +961,8 @@ const getDoctorAvailability = async (req, res) => {
                 message: "Doctor not found"
             });
         }
+
+        const bookingVisibleUntil = doctor[0].booking_visible_until;
 
         // Generate regular slots for next 30 days if no date filter
         const { ensureRegularSlotsExist } = require('../utils/availabilityHelper');
@@ -998,6 +1001,14 @@ const getDoctorAvailability = async (req, res) => {
         if (date) {
             sql += ` AND available_date = ?`;
             params.push(date);
+        }
+
+        if (bookingVisibleUntil) {
+            const visibleUntilStr = typeof bookingVisibleUntil === 'string' 
+                ? bookingVisibleUntil.split('T')[0] 
+                : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(bookingVisibleUntil));
+            sql += ` AND available_date <= ?`;
+            params.push(visibleUntilStr);
         }
 
         sql += ` ORDER BY available_date ASC, FIELD(session, 'Morning', 'Evening') ASC, start_time ASC`;
@@ -1218,7 +1229,8 @@ const bookAppointment = async (req, res) => {
                     da.average_consultation_minutes,
                     da.total_tokens,
                     da.is_leave,
-                    d.clinic_id
+                    d.clinic_id,
+                    d.booking_visible_until
 
                 FROM doctor_availability da
                 INNER JOIN doctors d ON d.doctor_id = da.doctor_id
@@ -1276,6 +1288,22 @@ const bookAppointment = async (req, res) => {
                 message:
                     "Cannot book an appointment for a past date"
             });
+        }
+
+        const bookingVisibleUntil = availability.booking_visible_until;
+        if (bookingVisibleUntil) {
+            const visibleUntilStr = typeof bookingVisibleUntil === 'string' 
+                ? bookingVisibleUntil.split('T')[0] 
+                : new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(bookingVisibleUntil));
+            
+            if (availDateStr > visibleUntilStr) {
+                await connection.rollback();
+
+                return res.status(400).json({
+                    success: false,
+                    message: "This date is outside the doctor's open booking window"
+                });
+            }
         }
 
         // =================================================

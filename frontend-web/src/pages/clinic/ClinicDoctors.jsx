@@ -121,6 +121,12 @@ const DoctorDetailsModal = ({ doctor, onClose, onEdit }) => {
             <DetailRow label="Phone 2" value={doctor.alternate_phone} />
             <DetailRow label="Email" value={doctor.email} />
             <DetailRow label="Consultation Fee" value={doctor.consultation_fee != null ? `₹${doctor.consultation_fee}` : ''} />
+            <DetailRow 
+              label="Booking Visibility" 
+              value={doctor.booking_visible_until 
+                ? `Visible until ${new Date(doctor.booking_visible_until).toLocaleDateString('en-GB')}` 
+                : 'No restriction'} 
+            />
           </div>
 
           <div style={{
@@ -148,7 +154,8 @@ const ClinicDoctors = () => {
   const [form, setForm] = useState({
     full_name: '', email: '', phone: '', alternate_phone: '',
     password: '', confirm_password: '', designation: '',
-    specialization: '', qualification: '', status: 'Active'
+    specialization: '', qualification: '', status: 'Active',
+    booking_visible_until: ''
   });
   const [touched, setTouched] = useState({});
   const [errorMsg, setErrorMsg] = useState('');
@@ -238,7 +245,8 @@ const ClinicDoctors = () => {
       designation: doc.designation || '',
       specialization: doc.specialization || '',
       qualification: doc.qualification || '',
-      status: doc.status || 'Active'
+      status: doc.status || 'Active',
+      booking_visible_until: doc.booking_visible_until ? doc.booking_visible_until.split('T')[0] : ''
     });
     setErrorMsg('');
     setTouched({});
@@ -251,7 +259,7 @@ const ClinicDoctors = () => {
     setForm({
       full_name: '', email: '', phone: '', alternate_phone: '',
       password: '', designation: '', specialization: '',
-      qualification: '', status: 'Active'
+      qualification: '', status: 'Active', booking_visible_until: ''
     });
     setErrorMsg('');
     setTouched({});
@@ -571,6 +579,18 @@ const ClinicDoctors = () => {
                       style={inputStyle('qualification')}
                       value={form.qualification} onChange={setField('qualification')} onBlur={blurField('qualification')} />
                     <FieldError field="qualification" />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    Booking Visible Until
+                    <div style={{ color: 'var(--text-muted, #94a3b8)', fontWeight: 400, fontSize: '0.78rem' }}>(From today up to this date)</div>
+                  </label>
+                  <div>
+                    <input type="date" className="form-control"
+                      min={new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })}
+                      value={form.booking_visible_until} onChange={setField('booking_visible_until')} onBlur={blurField('booking_visible_until')} />
                   </div>
                 </div>
 

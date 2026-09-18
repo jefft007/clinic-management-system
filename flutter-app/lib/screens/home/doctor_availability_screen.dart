@@ -64,8 +64,7 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
     }
   }
 
-  String _selectedFilter = 'This Week';
-  final List<String> _filters = ['This Week', 'Next Week', 'All Upcoming'];
+  DateTime? _selectedDate;
 
   @override
   Widget build(BuildContext context) {
@@ -83,26 +82,23 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
 
     final slots = (_slots ?? []).where((s) => !s.isLeave).toList();
     
-    // Filter slots based on selection
+    // Filter slots
     final now = DateTime.now();
     final todayStr = now.toIso8601String().split('T')[0];
     
     final nextWeek = now.add(const Duration(days: 7));
     final nextWeekStr = nextWeek.toIso8601String().split('T')[0];
-
-    final twoWeeks = now.add(const Duration(days: 14));
-    final twoWeeksStr = twoWeeks.toIso8601String().split('T')[0];
     
     final availableSlots = slots.where((s) {
       if (s.availableDate.compareTo(todayStr) < 0) return false;
       
-      if (_selectedFilter == 'This Week') {
-        return s.availableDate.compareTo(nextWeekStr) <= 0;
-      } else if (_selectedFilter == 'Next Week') {
-        return s.availableDate.compareTo(nextWeekStr) > 0 && 
-               s.availableDate.compareTo(twoWeeksStr) <= 0;
+      if (_selectedDate != null) {
+        final selStr = _selectedDate!.toIso8601String().split('T')[0];
+        return s.availableDate == selStr;
       }
-      return true; // All Upcoming
+      
+      // Default to This Week
+      return s.availableDate.compareTo(nextWeekStr) <= 0;
     }).toList();
 
     return Column(
@@ -112,17 +108,67 @@ class _DoctorAvailabilityScreenState extends State<DoctorAvailabilityScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '${widget.doctor.specialization ?? ''} · ${widget.clinic.clinicName}',
-                style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+              Expanded(
+                child: Text(
+                  '${widget.doctor.specialization ?? ''} · ${widget.clinic.clinicName}',
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-              DropdownButton<String>(
-                value: _selectedFilter,
-                underline: const SizedBox(),
-                items: _filters.map((f) => DropdownMenuItem(value: f, child: Text(f, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)))).toList(),
-                onChanged: (val) {
-                  if (val != null) setState(() => _selectedFilter = val);
-                },
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (_selectedDate != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: ActionChip(
+                        label: Text(_formatDate(_selectedDate!.toIso8601String().split('T')[0])),
+                        onPressed: () => setState(() => _selectedDate = null),
+                        avatar: const Icon(Icons.clear, size: 16),
+                        backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                        side: BorderSide.none,
+                      ),
+                    ),
+                  IconButton(
+                    icon: const Icon(Icons.calendar_month, color: AppColors.primary),
+                    onPressed: () async {
+                      final maxDateStr = widget.doctor.bookingVisibleUntil;
+                      DateTime maxDate = now.add(const Duration(days: 30));
+                      if (maxDateStr != null && maxDateStr.isNotEmpty) {
+                        try {
+                          final parsedMax = DateTime.parse(maxDateStr.split('T')[0]);
+                          if (parsedMax.isAfter(now)) {
+                            maxDate = parsedMax;
+                          } else {
+                            maxDate = now;
+                          }
+                        } catch (_) {}
+                      }
+
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _selectedDate ?? now,
+                        firstDate: now,
+                        lastDate: maxDate,
+                        builder: (context, child) {
+                          return Theme(
+                            data: Theme.of(context).copyWith(
+                              colorScheme: const ColorScheme.light(
+                                primary: AppColors.primary,
+                                onPrimary: Colors.white,
+                                onSurface: AppColors.textPrimary,
+                              ),
+                            ),
+                            child: child!,
+                          );
+                        },
+                      );
+                      if (picked != null) {
+                        setState(() => _selectedDate = picked);
+                      }
+                    },
+                  ),
+                ],
               ),
             ],
           ),

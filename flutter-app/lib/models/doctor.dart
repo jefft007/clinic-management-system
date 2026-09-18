@@ -5,6 +5,7 @@ class Doctor {
   final String? specialization;
   final String? qualification;
   final num? consultationFee;
+  final String? bookingVisibleUntil;
 
   Doctor({
     required this.doctorId,
@@ -13,6 +14,7 @@ class Doctor {
     this.specialization,
     this.qualification,
     this.consultationFee,
+    this.bookingVisibleUntil,
   });
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
@@ -23,12 +25,13 @@ class Doctor {
       clinicId: json['clinic_id'] is int
           ? json['clinic_id']
           : int.parse(json['clinic_id'].toString()),
-      fullName: json['full_name']?.toString() ?? '',
+      fullName: (json['doctor_name'] ?? json['full_name'])?.toString() ?? '',
       specialization: json['specialization']?.toString(),
       qualification: json['qualification']?.toString(),
       consultationFee: json['consultation_fee'] == null
           ? null
           : num.tryParse(json['consultation_fee'].toString()),
+      bookingVisibleUntil: json['booking_visible_until']?.toString(),
     );
   }
 }

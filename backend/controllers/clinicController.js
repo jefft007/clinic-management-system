@@ -762,7 +762,8 @@ const getClinicDoctors = async (req, res) => {
                 d.specialization,
                 d.qualification,
                 d.consultation_fee,
-                d.status
+                d.status,
+                d.booking_visible_until
 
             FROM doctors d
 
@@ -1826,7 +1827,8 @@ const updateClinicDoctor = async (req, res) => {
             password,
             designation,
             specialization,
-            qualification
+            qualification,
+            booking_visible_until
         } = req.body;
 
         const [doctorRows] =
@@ -1913,12 +1915,14 @@ const updateClinicDoctor = async (req, res) => {
             `UPDATE doctors
              SET
                 specialization = ?,
-                qualification = ?
+                qualification = ?,
+                booking_visible_until = ?
              WHERE doctor_id = ?
                AND clinic_id = ?`,
             [
                 specialization,
                 qualification || null,
+                booking_visible_until || null,
                 doctorId,
                 clinicId
             ]
